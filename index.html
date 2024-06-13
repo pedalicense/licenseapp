@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lisans Tanımlama</title>
+</head>
+<body>
+    <h1>Lisans Tanımlama Ekranı</h1>
+    <form id="license-form">
+        <label for="customerName">Müşteri Adı:</label>
+        <input type="text" id="customerName" name="customerName" required><br><br>
+
+        <label for="productName">Ürün Adı:</label>
+        <input type="text" id="productName" name="productName" required><br><br>
+
+        <label for="installationDate">Kurulum Tarihi:</label>
+        <input type="date" id="installationDate" name="installationDate" required><br><br>
+
+        <label for="invoiceAmount">Fatura Tutarı (TL):</label>
+        <input type="number" id="invoiceAmount" name="invoiceAmount" required><br><br>
+
+        <label for="maintenancePeriod">Bakım Periyodu (Ay):</label>
+        <input type="number" id="maintenancePeriod" name="maintenancePeriod" required><br><br>
+
+        <label for="nextMaintenanceDate">Gelecek Bakım Yenileme Tarihi:</label>
+        <input type="date" id="nextMaintenanceDate" name="nextMaintenanceDate" readonly><br><br>
+
+        <button type="button" onclick="saveLicense()">Kaydet</button>
+        <button type="reset">Vazgeç</button>
+    </form>
+
+    <h2>Tanımlı Lisanslar</h2>
+    <table id="licensesTable" border="1">
+        <thead>
+            <tr>
+                <th>Müşteri Adı</th>
+                <th>Ürün Adı</th>
+                <th>Kurulum Tarihi</th>
+                <th>Fatura Tutarı (TL)</th>
+                <th>Bakım Periyodu (Ay)</th>
+                <th>Gelecek Bakım Yenileme Tarihi</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        document.getElementById('maintenancePeriod').addEventListener('input', calculateNextMaintenanceDate);
+        document.getElementById('installationDate').addEventListener('change', calculateNextMaintenanceDate);
+
+        function calculateNextMaintenanceDate() {
+            const installationDate = new Date(document.getElementById('installationDate').value);
+            const maintenancePeriod = parseInt(document.getElementById('maintenancePeriod').value, 10);
+
+            if (!isNaN(installationDate.getTime()) && !isNaN(maintenancePeriod)) {
+                installationDate.setMonth(installationDate.getMonth() + maintenancePeriod);
+                const nextMaintenanceDate = installationDate.toISOString().split('T')[0];
+                document.getElementById('nextMaintenanceDate').value = nextMaintenanceDate;
+            }
+        }
+
+        function saveLicense() {
+            const customerName = document.getElementById('customerName').value;
+            const productName = document.getElementById('productName').value;
+            const installationDate = document.getElementById('installationDate').value;
+            const invoiceAmount = document.getElementById('invoiceAmount').value;
+            const maintenancePeriod = document.getElementById('maintenancePeriod').value;
+            const nextMaintenanceDate = document.getElementById('nextMaintenanceDate').value;
+
+            const license = {
+                customerName,
+                productName,
+                installationDate,
+                invoiceAmount,
+                maintenancePeriod,
+                nextMaintenanceDate
+            };
+
+            fetch('/api/licenses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(license)
+            })
+            .then(response => response.json())
+            .then(data => {
+                addLicenseToTable(data);
+                document.getElementById('license-form').reset();
+                document.getElementById('nextMaintenanceDate').value = '';
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function addLicenseToTable(license) {
+            const table = document.getElementById('licensesTable').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+
+            newRow.innerHTML = `
+                <td>${license.customerName}</td>
+                <td>${license.productName}</td>
+                <td>${license.installationDate}</td>
+                <td>${license.invoiceAmount}</td>
+                <td>${license.maintenancePeriod}</td>
+                <td>${license.nextMaintenanceDate}</td>
+                <td>
+                    <button onclick="editLicense('${license.id}')">Düzenle</button>
+                    <button onclick="deleteLicense('${license.id}')">Sil</button>
+                </td>
+            `;
+        }
+
+        function editLicense(id) {
+            // Edit functionality
+        }
+
+        function deleteLicense(id) {
+            // Delete functionality
+        }
+
+        // Fetch and display licenses on page load
+        fetch('/api/licenses')
+            .then(response => response.json())
+            .then(data => data.forEach(license => addLicenseToTable(license)))
+            .catch(error => console.error('Error:', error));
+    </script>
+</body>
+</html>
